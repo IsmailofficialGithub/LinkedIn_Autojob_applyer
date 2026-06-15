@@ -1,4 +1,4 @@
-import { Button, Drawer, IconButton, Tooltip } from '@mui/material'
+import { Drawer, IconButton, Tooltip } from '@mui/material'
 import {
   BriefcaseBusiness,
   FileText,
@@ -11,10 +11,11 @@ import {
   PanelLeftOpen,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { metadata } from '../../config/metadata'
 import { useAuth } from '../../hooks/useAuth'
+import { apiClient } from '../../lib/apiClient'
 import { ThemeToggle } from '../common/ThemeToggle'
 
 const navItems = [
@@ -25,19 +26,34 @@ const navItems = [
   { label: 'Settings', to: '/settings', icon: Settings },
 ]
 
-function BrandBlock({ collapsed = false }) {
+function BrandBlock({ collapsed = false, linkedinAccount }) {
+  const [failedImageUrl, setFailedImageUrl] = useState('')
+  const profileImage =
+    linkedinAccount?.picture && failedImageUrl !== linkedinAccount.picture
+      ? linkedinAccount.picture
+      : ''
+
   return (
     <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
       <img
-        src={metadata.company.logoUrl}
-        alt=""
-        className="h-10 w-10 rounded-lg border border-[var(--border-subtle)] bg-white"
+        src={profileImage || metadata.company.logoUrl}
+        alt={profileImage ? 'LinkedIn profile' : ''}
+        onError={() => {
+          if (profileImage) {
+            setFailedImageUrl(profileImage)
+          }
+        }}
+        className={`h-10 w-10 border border-[var(--border-subtle)] bg-white object-cover ${
+          profileImage ? 'rounded-full' : 'rounded-lg'
+        }`}
       />
       <div className={collapsed ? 'hidden' : ''}>
         <p className="text-sm font-semibold text-[var(--text-primary)]">
-          {metadata.company.shortName}
+          {linkedinAccount?.name || metadata.company.shortName}
         </p>
-        <p className="text-xs text-[var(--text-secondary)]">{metadata.company.productStatus}</p>
+        <p className="truncate text-xs text-[var(--text-secondary)]">
+          {linkedinAccount?.email || metadata.company.productStatus}
+        </p>
       </div>
     </div>
   )
@@ -80,7 +96,7 @@ function SidebarNav({ collapsed = false, onNavigate }) {
   )
 }
 
-function SidebarContent({ collapsed = false, onClose, onToggleCollapse }) {
+function SidebarContent({ collapsed = false, onClose, onToggleCollapse, linkedinAccount }) {
   return (
     <aside
       className={`flex h-full flex-col border-r border-[var(--border-subtle)] bg-[var(--surface-panel)] p-4 transition-[width] duration-200 ${
@@ -88,7 +104,7 @@ function SidebarContent({ collapsed = false, onClose, onToggleCollapse }) {
       }`}
     >
       <div className="flex items-center justify-between">
-        <BrandBlock collapsed={collapsed} />
+        <BrandBlock collapsed={collapsed} linkedinAccount={linkedinAccount} />
         {onClose ? (
           <IconButton
             aria-label="Close menu"
@@ -133,7 +149,35 @@ function SidebarContent({ collapsed = false, onClose, onToggleCollapse }) {
 export function AppLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [linkedinStatus, setLinkedinStatus] = useState(null)
   const { signOut, user } = useAuth()
+  const linkedinAccount = useMemo(() => {
+    if (!linkedinStatus?.connected) return null
+    return linkedinStatus.account
+  }, [linkedinStatus])
+
+  useEffect(() => {
+    let active = true
+
+    const loadLinkedinStatus = async () => {
+      try {
+        const { data } = await apiClient.get('/linkedin/status')
+        if (active) {
+          setLinkedinStatus(data.data)
+        }
+      } catch {
+        if (active) {
+          setLinkedinStatus(null)
+        }
+      }
+    }
+
+    loadLinkedinStatus()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-[var(--surface-page)] lg:flex">
@@ -141,6 +185,7 @@ export function AppLayout({ children }) {
         <SidebarContent
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((current) => !current)}
+          linkedinAccount={linkedinAccount}
         />
       </div>
 
@@ -156,58 +201,64 @@ export function AppLayout({ children }) {
           },
         }}
       >
-        <SidebarContent onClose={() => setMobileOpen(false)} />
+        <SidebarContent onClose={() => setMobileOpen(false)} linkedinAccount={linkedinAccount} />
       </Drawer>
 
       <div
-        className={`min-w-0 flex-1 transition-[padding] duration-200 ${
+        className={`min-w-0 flex-1 overflow-x-hidden transition-[margin] duration-200 ${
           sidebarCollapsed
-            ? 'lg:pl-[var(--sidebar-collapsed-width)]'
-            : 'lg:pl-[var(--sidebar-width)]'
+            ? 'lg:ml-[var(--sidebar-collapsed-width)]'
+            : 'lg:ml-[var(--sidebar-width)]'
         }`}
       >
         <header className="sticky top-0 z-20 border-b border-[var(--border-subtle)] bg-[var(--surface-panel)]/95 backdrop-blur">
-          <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-            <div className="flex items-center gap-3">
+          <div className="flex h-16 min-w-0 items-center justify-between gap-3 px-4 sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
               <IconButton
                 aria-label="Open menu"
                 onClick={() => setMobileOpen(true)}
                 size="small"
                 sx={{
-                  display: { lg: 'none' },
+                  '@media (min-width: 1024px)': {
+                    display: 'none',
+                  },
                   color: 'var(--text-primary)',
                   border: '1px solid var(--border-subtle)',
                 }}
               >
                 <Menu size={19} />
               </IconButton>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-[var(--text-primary)]">Dashboard</p>
-                <p className="text-xs text-[var(--text-secondary)]">
+                <p className="truncate text-xs text-[var(--text-secondary)]">
                   {user?.email || 'Manage resume, jobs, and outreach.'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <ThemeToggle />
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<LogOut size={16} />}
-                onClick={signOut}
-                sx={{
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                  textTransform: 'none',
-                }}
-              >
-                Sign out
-              </Button>
+              <Tooltip title="Sign out">
+                <IconButton
+                  aria-label="Sign out"
+                  onClick={signOut}
+                  size="small"
+                  sx={{
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                    backgroundColor: 'var(--surface-panel)',
+                    '&:hover': {
+                      backgroundColor: 'var(--surface-muted)',
+                    },
+                  }}
+                >
+                  <LogOut size={18} />
+                </IconButton>
+              </Tooltip>
             </div>
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="max-w-full px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
   )
