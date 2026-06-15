@@ -5,6 +5,7 @@ const test = require('node:test');
 const request = require('supertest');
 const app = require('../src/app');
 const { resetStore, state } = require('../src/database/store');
+const linkedinService = require('../src/features/linkedin/linkedin.service');
 
 const auth = { Authorization: 'Bearer test-token' };
 
@@ -60,12 +61,15 @@ test('all planned backend phases expose working route flows', async () => {
 
   const connect = await request(app).get('/api/linkedin/connect').set(auth).expect(200);
   assert.match(connect.body.data.url, /linkedin\.com/);
+  assert.match(connect.body.data.url, /state=/);
 
-  const linkedin = await request(app)
-    .get('/api/linkedin/callback?mock=1&sub=abc&name=Tester&email=linkedin@example.com')
-    .set(auth)
-    .expect(200);
-  assert.equal(linkedin.body.data.connected, true);
+  const linkedin = await linkedinService.connectLinkedin('user_test', {
+    mock: '1',
+    sub: 'abc',
+    name: 'Tester',
+    email: 'linkedin@example.com',
+  });
+  assert.equal(linkedin.connected, true);
 
   const linkedinStatus = await request(app).get('/api/linkedin/status').set(auth).expect(200);
   assert.equal(linkedinStatus.body.data.connected, true);
