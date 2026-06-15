@@ -48,8 +48,34 @@ const uploadResume = async (userId, file) => {
   return repository.insert('resumes', resume);
 };
 
-const getActiveResume = (userId) =>
-  repository.findFirstByUser('resumes', userId, (resume) => resume.active && !resume.deletedAt);
+const attachPreviewUrl = async (resume) => {
+  if (!resume || !supabase || resume.mimeType !== 'application/pdf') {
+    return resume;
+  }
+
+  const { data, error } = await supabase.storage
+    .from(resume.bucket)
+    .createSignedUrl(resume.storagePath, 60 * 10);
+
+  if (error) {
+    return resume;
+  }
+
+  return {
+    ...resume,
+    previewUrl: data.signedUrl,
+  };
+};
+
+const getActiveResume = async (userId) => {
+  const resume = await repository.findFirstByUser(
+    'resumes',
+    userId,
+    (item) => item.active && !item.deletedAt,
+  );
+
+  return attachPreviewUrl(resume);
+};
 
 const updateResume = async (userId, id, payload) => {
   const resume = await repository.findById('resumes', userId, id);

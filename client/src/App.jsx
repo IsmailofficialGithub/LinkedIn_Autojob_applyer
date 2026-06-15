@@ -4,6 +4,8 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { PublicOnlyRoute } from './components/auth/PublicOnlyRoute'
 import { AppLayout } from './components/layout/AppLayout'
 import { DashboardPage } from './pages/DashboardPage'
+import { EmailPage } from './pages/EmailPage'
+import { JobsPage } from './pages/JobsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { SetupPage } from './pages/SetupPage'
 import { SignInPage } from './pages/SignInPage'
@@ -25,6 +27,22 @@ function App() {
             element={
               <AppLayout>
                 <DashboardPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/jobs"
+            element={
+              <AppLayout>
+                <JobsPage />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/email"
+            element={
+              <AppLayout>
+                <EmailPage />
               </AppLayout>
             }
           />

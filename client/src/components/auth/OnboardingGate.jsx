@@ -33,9 +33,5 @@ export function OnboardingGate() {
     return <Navigate to="/setup" replace />
   }
 
-  if (isComplete && location.pathname === '/setup') {
-    return <Navigate to="/" replace />
-  }
-
   return <Outlet />
 }

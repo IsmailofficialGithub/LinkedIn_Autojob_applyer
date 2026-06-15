@@ -7,6 +7,7 @@ import {
   Search,
   Send,
   Sparkles,
+  ArrowRight,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -362,44 +363,90 @@ function QuickActions({ keywordCount }) {
       description: `${keywordCount}/${keywordLimit} keyword sets saved`,
       to: '/setup',
       icon: Search,
+      primary: false,
     },
     {
       label: 'Add job content',
       description: 'Paste LinkedIn job or post content',
       to: '/jobs',
       icon: BriefcaseBusiness,
+      primary: true,
     },
     {
       label: 'Review outreach',
       description: 'Check queue before sending',
       to: '/email',
       icon: Send,
+      primary: false,
     },
   ]
 
   return (
-    <Section title="Quick actions">
-      <div className="grid gap-3 p-5 md:grid-cols-3">
+    <section className="overflow-hidden rounded-lg border border-brand-600/30 bg-[var(--surface-panel)]">
+      <div className="border-b border-brand-600/20 bg-[var(--brand-soft)] px-5 py-4">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-100">
+              Command center
+            </p>
+            <h2 className="mt-1 text-base font-semibold text-[var(--text-primary)]">
+              Quick actions
+            </h2>
+          </div>
+          <p className="text-sm text-[var(--text-secondary)]">Jump straight into the next workflow.</p>
+        </div>
+      </div>
+      <div className="grid gap-3 p-4 lg:grid-cols-3">
         {actions.map((action) => {
           const Icon = action.icon
           return (
             <Link
               key={action.label}
               to={action.to}
-              className="rounded-md border border-[var(--border-subtle)] p-4 hover:bg-[var(--surface-muted)]"
+              className={`group flex min-h-32 flex-col justify-between rounded-lg border p-4 transition hover:-translate-y-0.5 ${
+                action.primary
+                  ? 'border-brand-600 bg-brand-600 text-white shadow-lg shadow-brand-600/20'
+                  : 'border-[var(--border-subtle)] bg-[var(--surface-page)] hover:border-brand-600/50 hover:bg-[var(--surface-muted)]'
+              }`}
             >
-              <span className="grid h-9 w-9 place-items-center rounded-md bg-[var(--brand-soft)] text-brand-700 dark:text-brand-100">
-                <Icon size={18} />
-              </span>
-              <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">
-                {action.label}
-              </p>
-              <p className="mt-1 text-xs text-[var(--text-secondary)]">{action.description}</p>
+              <div className="flex items-start justify-between gap-3">
+                <span
+                  className={`grid h-10 w-10 place-items-center rounded-md ${
+                    action.primary
+                      ? 'bg-white/15 text-white'
+                      : 'bg-[var(--brand-soft)] text-brand-700 dark:text-brand-100'
+                  }`}
+                >
+                  <Icon size={19} />
+                </span>
+                <ArrowRight
+                  size={18}
+                  className={`transition group-hover:translate-x-1 ${
+                    action.primary ? 'text-white' : 'text-[var(--text-secondary)]'
+                  }`}
+                />
+              </div>
+              <div className="mt-5">
+                <p
+                  className={`text-sm font-semibold ${
+                    action.primary ? 'text-white' : 'text-[var(--text-primary)]'
+                  }`}
+                >
+                  {action.label}
+                </p>
+                <p
+                  className={`mt-1 text-xs ${
+                    action.primary ? 'text-white/80' : 'text-[var(--text-secondary)]'
+                  }`}
+                >
+                  {action.description}
+                </p>
+              </div>
             </Link>
           )
         })}
       </div>
-    </Section>
+    </section>
   )
 }
 
