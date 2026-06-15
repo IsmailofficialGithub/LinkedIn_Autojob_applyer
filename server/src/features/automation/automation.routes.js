@@ -7,5 +7,6 @@ const router = express.Router();
 router.get('/automation/settings', asyncHandler(controller.getSettings));
 router.put('/automation/settings', asyncHandler(controller.updateSettings));
 router.get('/automation/runs', asyncHandler(controller.listRuns));
+router.post('/automation/trigger', asyncHandler(controller.trigger));
 
 module.exports = router;

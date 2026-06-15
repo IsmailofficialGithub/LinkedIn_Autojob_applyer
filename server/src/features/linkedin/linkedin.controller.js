@@ -29,4 +29,15 @@ const disconnect = async (req, res) =>
     data: await linkedinService.disconnectLinkedin(req.user.id),
   });
 
-module.exports = { getConnectUrl, handleCallback, handlePublicCallback, getStatus, disconnect };
+const saveCookie = async (req, res) => {
+  const { cookie } = req.body;
+  if (!cookie) {
+    return res.status(400).json({ success: false, message: 'Cookie is required' });
+  }
+  return sendSuccess(res, {
+    message: 'LinkedIn cookie saved',
+    data: await linkedinService.saveLinkedinCookie(req.user.id, cookie),
+  });
+};
+
+module.exports = { getConnectUrl, handleCallback, handlePublicCallback, getStatus, disconnect, saveCookie };

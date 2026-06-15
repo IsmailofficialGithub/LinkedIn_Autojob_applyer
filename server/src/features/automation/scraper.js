@@ -20,7 +20,7 @@ const closeBrowser = async () => {
   }
 };
 
-const getPage = async () => {
+const getPage = async (liAtCookie) => {
   const browser = await getBrowser();
   const page = await browser.newPage();
   
@@ -30,11 +30,12 @@ const getPage = async () => {
   );
   await page.setViewport({ width: 1280, height: 800 });
 
-  // Optional: Set li_at cookie if provided in environment (or from user settings later)
-  if (env.LINKEDIN_COOKIE_LI_AT) {
+  // Use the user's specific li_at cookie
+  const cookieValue = liAtCookie || env.LINKEDIN_COOKIE_LI_AT;
+  if (cookieValue) {
     await page.setCookie({
       name: 'li_at',
-      value: env.LINKEDIN_COOKIE_LI_AT,
+      value: cookieValue,
       domain: '.linkedin.com',
       path: '/',
       secure: true,
@@ -45,8 +46,8 @@ const getPage = async () => {
   return page;
 };
 
-const searchPosts = async (keyword, pageNum = 1) => {
-  const page = await getPage();
+const searchPosts = async (keyword, pageNum = 1, liAtCookie = null) => {
+  const page = await getPage(liAtCookie);
   const encodedKeyword = encodeURIComponent(keyword);
   // Using the exact URL format provided by the user in the prompt, with skipRedirect=true
   const searchUrl = `https://www.linkedin.com/search/results/content/?skipRedirect=true&keywords=${encodedKeyword}&origin=SWITCH_SEARCH_VERTICAL&page=${pageNum}`;
@@ -91,8 +92,8 @@ const searchPosts = async (keyword, pageNum = 1) => {
   }
 };
 
-const searchJobs = async (keyword, pageNum = 1) => {
-  const page = await getPage();
+const searchJobs = async (keyword, pageNum = 1, liAtCookie = null) => {
+  const page = await getPage(liAtCookie);
   const encodedKeyword = encodeURIComponent(keyword);
   // Job search URL
   const searchUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodedKeyword}&origin=SWITCH_SEARCH_VERTICAL&start=${(pageNum - 1) * 25}`;
@@ -134,8 +135,8 @@ const searchJobs = async (keyword, pageNum = 1) => {
   }
 };
 
-const clickApplyOnJob = async (jobUrl) => {
-  const page = await getPage();
+const clickApplyOnJob = async (jobUrl, liAtCookie = null) => {
+  const page = await getPage(liAtCookie);
   try {
     await page.goto(jobUrl, { waitUntil: 'networkidle2', timeout: 30000 });
     

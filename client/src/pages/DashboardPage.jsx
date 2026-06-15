@@ -8,6 +8,7 @@ import {
   Send,
   Sparkles,
   ArrowRight,
+  PlayCircle,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -599,13 +600,29 @@ export function DashboardPage() {
               </p>
             </div>
           </div>
-          <Link
-            to="/jobs"
-            className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 sm:w-auto"
-          >
-            <BriefcaseBusiness size={17} />
-            Add job content
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto shrink-0">
+            <button
+              onClick={async () => {
+                try {
+                  await apiClient.post('/automation/trigger');
+                  alert('Background search and applying started! Check back soon.');
+                } catch (err) {
+                  alert(getErrorMessage(err, 'Failed to trigger automation'));
+                }
+              }}
+              className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-md border border-[var(--border-subtle)] bg-[var(--surface-page)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-muted)] sm:w-auto"
+            >
+              <PlayCircle size={17} />
+              Run background search
+            </button>
+            <Link
+              to="/jobs"
+              className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 sm:w-auto"
+            >
+              <BriefcaseBusiness size={17} />
+              Add job content
+            </Link>
+          </div>
         </div>
       </section>
 

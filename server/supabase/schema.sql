@@ -17,6 +17,7 @@ create table if not exists linkedin_accounts (
   name text,
   email text,
   picture text,
+  li_at_cookie text,
   connected boolean default true,
   connected_at timestamptz,
   updated_at timestamptz default now(),

@@ -95,6 +95,7 @@ export function SetupPage() {
   const [workMode, setWorkMode] = useState('remote')
   const [emailInput, setEmailInput] = useState('')
   const [appPasswordInput, setAppPasswordInput] = useState('')
+  const [liAtCookieInput, setLiAtCookieInput] = useState('')
   const [error, setError] = useState(
     searchParams.get('linkedin') === 'failed'
       ? 'LinkedIn connection could not be completed. Please try again from this page.'
@@ -187,7 +188,23 @@ export function SetupPage() {
         window.URL.revokeObjectURL(objectUrl)
       }
     }
-  }, [activeResume])
+  }, [refreshOnboarding])
+
+  const saveCookie = async () => {
+    if (!liAtCookieInput.trim()) return
+    setLoadingAction('linkedin-cookie')
+    setError('')
+    try {
+      await apiClient.put('/linkedin/cookie', { cookie: liAtCookieInput })
+      setNotice('LinkedIn cookie saved successfully.')
+      setLiAtCookieInput('')
+      await loadSetupDetails()
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to save cookie'))
+    } finally {
+      setLoadingAction(null)
+    }
+  }
 
   const refreshSetup = async () => {
     await Promise.all([refreshOnboarding(), loadSetupDetails()])
@@ -516,6 +533,32 @@ export function SetupPage() {
                   You will be redirected to LinkedIn, then brought back here after approval.
                 </p>
               )}
+
+              {steps.linkedinConnected ? (
+                <div className="mt-6 border-t border-[var(--border-subtle)] pt-6">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Automation Cookie</h3>
+                  <p className="text-xs text-[var(--text-secondary)] mb-4">
+                    To allow background scraping, please provide your LinkedIn session cookie (<code>li_at</code>).
+                    {linkedinAccount?.liAtCookie ? ' You have already provided a cookie, but you can update it below.' : ''}
+                  </p>
+                  <div className="flex gap-2">
+                    <TextField
+                      size="small"
+                      placeholder="Paste li_at cookie here..."
+                      value={liAtCookieInput}
+                      onChange={(e) => setLiAtCookieInput(e.target.value)}
+                      fullWidth
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={saveCookie}
+                      disabled={loadingAction === 'linkedin-cookie' || !liAtCookieInput.trim()}
+                    >
+                      Save Cookie
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </StepPanel>
           ) : null}
 

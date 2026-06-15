@@ -13,4 +13,10 @@ const updateSettings = async (req, res) =>
 const listRuns = async (req, res) =>
   sendSuccess(res, { data: await automationService.listAutomationRuns(req.user.id) });
 
-module.exports = { getSettings, updateSettings, listRuns };
+const trigger = async (req, res) => {
+  const { triggerScrapingForUser } = require('./queues');
+  await triggerScrapingForUser(req.user.id);
+  return sendSuccess(res, { message: 'Background automation job queued successfully.' });
+};
+
+module.exports = { getSettings, updateSettings, listRuns, trigger };

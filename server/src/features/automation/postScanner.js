@@ -1,6 +1,7 @@
 const scraper = require('./scraper');
 const jobSubmissionsService = require('../jobSubmissions/jobSubmissions.service');
 const automationService = require('./automation.service');
+const linkedinService = require('../linkedin/linkedin.service');
 
 const scanAndQueueEmails = async (userId, keyword, maxPages = 1) => {
   let run = await automationService.createAutomationRun(userId, {
@@ -9,10 +10,13 @@ const scanAndQueueEmails = async (userId, keyword, maxPages = 1) => {
   });
 
   try {
+    const { account } = await linkedinService.getLinkedinStatus(userId);
+    const liAtCookie = account?.liAtCookie || null;
+
     let newPostsFound = 0;
     
     for (let page = 1; page <= maxPages; page++) {
-      const posts = await scraper.searchPosts(keyword, page);
+      const posts = await scraper.searchPosts(keyword, page, liAtCookie);
       
       for (const post of posts) {
         if (!post.text || !post.text.trim()) continue;

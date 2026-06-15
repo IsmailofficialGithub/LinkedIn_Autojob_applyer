@@ -63,7 +63,7 @@ const fetchLinkedinIdentity = async (code) => {
   return userResponse.data;
 };
 
-const saveLinkedinIdentity = async (userId, identity) => {
+const saveLinkedinIdentity = async (userId, identity, liAtCookie = null) => {
   const existing = await getLinkedinAccount(userId);
   const account = {
     id: existing?.id || createId(),
@@ -72,6 +72,7 @@ const saveLinkedinIdentity = async (userId, identity) => {
     name: identity.name || '',
     email: identity.email || '',
     picture: identity.picture || '',
+    liAtCookie: liAtCookie ?? existing?.liAtCookie ?? null,
     connected: true,
     connectedAt: now(),
     updatedAt: now(),
@@ -81,6 +82,21 @@ const saveLinkedinIdentity = async (userId, identity) => {
   return existing
     ? repository.update('linkedinAccounts', account)
     : repository.insert('linkedinAccounts', account);
+};
+
+const saveLinkedinCookie = async (userId, cookie) => {
+  const existing = await getLinkedinAccount(userId);
+  if (!existing) {
+    throw new ApiError(400, 'Please connect LinkedIn first before saving cookie.');
+  }
+
+  const account = {
+    ...existing,
+    liAtCookie: cookie,
+    updatedAt: now(),
+  };
+
+  return repository.update('linkedinAccounts', account);
 };
 
 const connectLinkedin = async (userId, query) => {
@@ -135,4 +151,5 @@ module.exports = {
   connectLinkedinFromCallback,
   disconnectLinkedin,
   getLinkedinStatus,
+  saveLinkedinCookie,
 };
