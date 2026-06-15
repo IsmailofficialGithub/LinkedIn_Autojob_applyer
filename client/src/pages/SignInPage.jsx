@@ -10,8 +10,8 @@ import { getErrorMessage } from '../lib/errorHandler'
 const signInMessages = [
   { after: 0, text: 'Connecting securely...' },
   { after: 3000, text: 'Still checking your account. This can take a few seconds.' },
-  { after: 5000, text: 'Almost there. Waiting for the server response.' },
-  { after: 9000, text: 'This is taking longer than usual. The backend may be waking up.' },
+  { after: 5000, text: 'Almost there. Waiting for a secure response.' },
+  { after: 9000, text: 'This is taking longer than usual. Please keep this page open.' },
 ]
 
 export function SignInPage() {

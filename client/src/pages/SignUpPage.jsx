@@ -12,7 +12,7 @@ import { getPasswordStrength } from '../lib/passwordStrength'
 const signUpMessages = [
   { after: 0, text: 'Creating your account...' },
   { after: 3000, text: 'Still setting things up. This can take a few seconds.' },
-  { after: 5000, text: 'Almost there. Waiting for the server response.' },
+  { after: 5000, text: 'Almost there. Waiting for a secure response.' },
   { after: 9000, text: 'This is taking longer than usual. Please keep this page open.' },
 ]
 
