@@ -95,6 +95,16 @@ export function SetupPage() {
       { advance: false },
     )
 
+  const disconnectLinkedin = () =>
+    runAction(
+      'linkedin',
+      async () => {
+        await apiClient.delete('/linkedin/disconnect')
+      },
+      'LinkedIn disconnected. You can reconnect anytime.',
+      { advance: false },
+    )
+
   const uploadResume = () =>
     runAction(
       'resume',
@@ -229,21 +239,35 @@ export function SetupPage() {
               title={currentStep.title}
               description={currentStep.description}
             >
-              <Button
-                variant="contained"
-                onClick={connectLinkedin}
-                disabled={steps.linkedinConnected || loadingAction === 'linkedin'}
-              >
-                {loadingAction === 'linkedin'
-                  ? 'Connecting...'
-                  : steps.linkedinConnected
-                    ? 'LinkedIn connected'
-                    : 'Connect LinkedIn'}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={steps.linkedinConnected ? 'outlined' : 'contained'}
+                  onClick={connectLinkedin}
+                  disabled={loadingAction === 'linkedin'}
+                >
+                  {loadingAction === 'linkedin'
+                    ? 'Working...'
+                    : steps.linkedinConnected
+                      ? 'Reconnect LinkedIn'
+                      : 'Connect LinkedIn'}
+                </Button>
+                {steps.linkedinConnected ? (
+                  <Button
+                    color="error"
+                    variant="outlined"
+                    onClick={disconnectLinkedin}
+                    disabled={loadingAction === 'linkedin'}
+                  >
+                    Disconnect
+                  </Button>
+                ) : null}
+              </div>
               {steps.linkedinConnected ? (
                 <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-200">
                   <p className="font-semibold">LinkedIn connected</p>
-                  <p className="mt-1">Your LinkedIn identity is verified. Continue to the next step.</p>
+                  <p className="mt-1">
+                    Your LinkedIn identity is verified. You can reconnect or disconnect it here.
+                  </p>
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-[var(--text-secondary)]">
