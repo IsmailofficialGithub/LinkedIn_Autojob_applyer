@@ -26,7 +26,7 @@ const navItems = [
   { label: 'Settings', to: '/settings', icon: Settings },
 ]
 
-function BrandBlock({ collapsed = false, linkedinAccount }) {
+function ProfileImage({ collapsed = false, linkedinAccount, className = '' }) {
   const [failedImageUrl, setFailedImageUrl] = useState('')
   const profileImage =
     linkedinAccount?.picture && failedImageUrl !== linkedinAccount.picture
@@ -34,19 +34,25 @@ function BrandBlock({ collapsed = false, linkedinAccount }) {
       : ''
 
   return (
-    <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
-      <img
-        src={profileImage || metadata.company.logoUrl}
-        alt={profileImage ? 'LinkedIn profile' : ''}
-        onError={() => {
-          if (profileImage) {
-            setFailedImageUrl(profileImage)
-          }
-        }}
-        className={`h-10 w-10 border border-[var(--border-subtle)] bg-white object-cover ${
-          profileImage ? 'rounded-full' : 'rounded-lg'
-        }`}
-      />
+    <img
+      src={profileImage || metadata.company.logoUrl}
+      alt={profileImage ? 'LinkedIn profile' : ''}
+      onError={() => {
+        if (profileImage) {
+          setFailedImageUrl(profileImage)
+        }
+      }}
+      className={`shrink-0 border border-[var(--border-subtle)] bg-white object-cover ${
+        profileImage ? 'rounded-full' : 'rounded-lg'
+      } ${collapsed ? 'h-11 w-11' : 'h-10 w-10'} ${className}`}
+    />
+  )
+}
+
+function BrandBlock({ collapsed = false, linkedinAccount }) {
+  return (
+    <div className={`flex min-w-0 items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
+      <ProfileImage collapsed={collapsed} linkedinAccount={linkedinAccount} />
       <div className={collapsed ? 'hidden' : ''}>
         <p className="text-sm font-semibold text-[var(--text-primary)]">
           {linkedinAccount?.name || metadata.company.shortName}
@@ -61,7 +67,7 @@ function BrandBlock({ collapsed = false, linkedinAccount }) {
 
 function SidebarNav({ collapsed = false, onNavigate }) {
   return (
-    <nav className="mt-8 flex flex-col gap-1">
+    <nav className={`mt-8 flex flex-col ${collapsed ? 'items-center gap-3' : 'gap-1'}`}>
       {navItems.map((item) => {
         const Icon = item.icon
         const link = (
@@ -70,8 +76,8 @@ function SidebarNav({ collapsed = false, onNavigate }) {
             to={item.to}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center rounded-md px-3 py-2.5 text-sm font-medium ${
-                collapsed ? 'justify-center' : 'gap-3'
+              `flex items-center rounded-md text-sm font-medium ${
+                collapsed ? 'h-12 w-12 justify-center p-0' : 'gap-3 px-3 py-2.5'
               } ${
                 isActive
                   ? 'bg-[var(--brand-soft)] text-brand-700 dark:text-brand-100'
@@ -79,7 +85,7 @@ function SidebarNav({ collapsed = false, onNavigate }) {
               }`
             }
           >
-            <Icon size={18} />
+            <Icon size={collapsed ? 24 : 18} strokeWidth={collapsed ? 2.1 : 2} />
             <span className={collapsed ? 'sr-only' : ''}>{item.label}</span>
           </NavLink>
         )
@@ -96,14 +102,24 @@ function SidebarNav({ collapsed = false, onNavigate }) {
   )
 }
 
-function SidebarContent({ collapsed = false, onClose, onToggleCollapse, linkedinAccount }) {
+function SidebarContent({
+  collapsed = false,
+  onClose,
+  onToggleCollapse,
+  linkedinAccount,
+  onSignOut,
+}) {
   return (
     <aside
-      className={`flex h-full flex-col border-r border-[var(--border-subtle)] bg-[var(--surface-panel)] p-4 transition-[width] duration-200 ${
+      className={`flex h-full flex-col border-r border-[var(--border-subtle)] bg-[var(--surface-panel)] transition-[width] duration-200 ${
         collapsed ? 'w-[var(--sidebar-collapsed-width)]' : 'w-[var(--sidebar-width)]'
-      }`}
+      } ${collapsed ? 'items-center px-3 py-5' : 'p-4'}`}
     >
-      <div className="flex items-center justify-between">
+      <div
+        className={`flex w-full ${
+          collapsed ? 'items-center justify-between' : 'items-center justify-between'
+        }`}
+      >
         <BrandBlock collapsed={collapsed} linkedinAccount={linkedinAccount} />
         {onClose ? (
           <IconButton
@@ -120,7 +136,16 @@ function SidebarContent({ collapsed = false, onClose, onToggleCollapse, linkedin
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               onClick={onToggleCollapse}
               size="small"
-              sx={{ color: 'var(--text-primary)' }}
+              sx={{
+                color: 'var(--text-primary)',
+                border: collapsed ? '1px solid var(--border-subtle)' : 'none',
+                backgroundColor: collapsed ? 'var(--surface-muted)' : 'transparent',
+                width: collapsed ? 32 : undefined,
+                height: collapsed ? 32 : undefined,
+                '&:hover': {
+                  backgroundColor: collapsed ? 'var(--brand-soft)' : 'var(--surface-muted)',
+                },
+              }}
             >
               {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </IconButton>
@@ -130,9 +155,23 @@ function SidebarContent({ collapsed = false, onClose, onToggleCollapse, linkedin
 
       <SidebarNav collapsed={collapsed} onNavigate={onClose} />
 
+      {onClose ? (
+        <button
+          type="button"
+          onClick={() => {
+            onClose()
+            onSignOut()
+          }}
+          className="mt-auto flex w-full items-center gap-3 rounded-md border border-[var(--border-subtle)] px-3 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-muted)]"
+        >
+          <LogOut size={18} />
+          Logout
+        </button>
+      ) : null}
+
       <div
-        className={`mt-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3 ${
-          collapsed ? 'hidden' : ''
+        className={`rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3 ${
+          collapsed || onClose ? 'hidden' : 'mt-auto'
         }`}
       >
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
@@ -186,6 +225,7 @@ export function AppLayout({ children }) {
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((current) => !current)}
           linkedinAccount={linkedinAccount}
+          onSignOut={signOut}
         />
       </div>
 
@@ -201,7 +241,11 @@ export function AppLayout({ children }) {
           },
         }}
       >
-        <SidebarContent onClose={() => setMobileOpen(false)} linkedinAccount={linkedinAccount} />
+        <SidebarContent
+          onClose={() => setMobileOpen(false)}
+          linkedinAccount={linkedinAccount}
+          onSignOut={signOut}
+        />
       </Drawer>
 
       <div
@@ -237,12 +281,20 @@ export function AppLayout({ children }) {
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <ThemeToggle />
+              <img
+                src={metadata.company.logoUrl}
+                alt={metadata.company.shortName}
+                className="h-9 w-9 rounded-lg border border-[var(--border-subtle)] bg-white object-cover lg:hidden"
+              />
               <Tooltip title="Sign out">
                 <IconButton
                   aria-label="Sign out"
                   onClick={signOut}
                   size="small"
                   sx={{
+                    '@media (max-width: 1023.95px)': {
+                      display: 'none',
+                    },
                     border: '1px solid var(--border-subtle)',
                     color: 'var(--text-primary)',
                     backgroundColor: 'var(--surface-panel)',

@@ -19,7 +19,7 @@
 :root {
   color-scheme: light;
   --sidebar-width: 320px;
-  --sidebar-collapsed-width: 84px;
+  --sidebar-collapsed-width: 104px;
   --surface-page: #f8fafc;
   --surface-panel: #ffffff;
   --surface-muted: #f1f5f9;
