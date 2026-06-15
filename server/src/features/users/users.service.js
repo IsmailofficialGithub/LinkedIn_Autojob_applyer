@@ -75,14 +75,16 @@ const getOnboarding = async (userId) => {
   const steps = {
     linkedinConnected,
     hasResume,
-    hasEmailAccount,
-    hasTemplate,
     hasKeywords,
   };
 
   return {
     complete: Object.values(steps).every(Boolean),
     steps,
+    optionalSteps: {
+      hasEmailAccount,
+      hasTemplate,
+    },
     missing: Object.entries(steps)
       .filter(([, value]) => !value)
       .map(([key]) => key),
