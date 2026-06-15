@@ -20,6 +20,7 @@ const upload = multer({
 const router = express.Router();
 
 router.get('/resumes/active', asyncHandler(resumesController.getActiveResume));
+router.get('/resumes/:id/file', asyncHandler(resumesController.getResumeFile));
 router.post('/resumes', upload.single('resume'), asyncHandler(resumesController.uploadResume));
 router.put('/resumes/:id', asyncHandler(resumesController.updateResume));
 router.delete('/resumes/:id', asyncHandler(resumesController.deleteResume));

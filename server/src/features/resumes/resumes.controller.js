@@ -5,6 +5,17 @@ const resumesService = require('./resumes.service');
 const getActiveResume = async (req, res) =>
   sendSuccess(res, { data: await resumesService.getActiveResume(req.user.id) });
 
+const getResumeFile = async (req, res) => {
+  const file = await resumesService.getResumeFile(req.user.id, req.params.id);
+  if (!file) {
+    throw new ApiError(404, 'Resume not found');
+  }
+
+  res.setHeader('Content-Type', file.resume.mimeType);
+  res.setHeader('Content-Disposition', `inline; filename="${file.resume.originalName}"`);
+  return res.send(file.buffer);
+};
+
 const uploadResume = async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, 'Resume file is required');
@@ -29,4 +40,4 @@ const deleteResume = async (req, res) =>
     data: await resumesService.deleteResume(req.user.id, req.params.id),
   });
 
-module.exports = { getActiveResume, uploadResume, updateResume, deleteResume };
+module.exports = { getActiveResume, getResumeFile, uploadResume, updateResume, deleteResume };

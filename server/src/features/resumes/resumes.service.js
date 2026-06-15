@@ -48,33 +48,39 @@ const uploadResume = async (userId, file) => {
   return repository.insert('resumes', resume);
 };
 
-const attachPreviewUrl = async (resume) => {
-  if (!resume || !supabase || resume.mimeType !== 'application/pdf') {
-    return resume;
-  }
-
-  const { data, error } = await supabase.storage
-    .from(resume.bucket)
-    .createSignedUrl(resume.storagePath, 60 * 10);
-
-  if (error) {
-    return resume;
-  }
-
-  return {
-    ...resume,
-    previewUrl: data.signedUrl,
-  };
-};
-
 const getActiveResume = async (userId) => {
-  const resume = await repository.findFirstByUser(
+  return repository.findFirstByUser(
     'resumes',
     userId,
     (item) => item.active && !item.deletedAt,
   );
+};
 
-  return attachPreviewUrl(resume);
+const getResumeFile = async (userId, id) => {
+  const resume = await repository.findById('resumes', userId, id);
+  if (!resume || resume.deletedAt) {
+    return null;
+  }
+
+  if (!supabase) {
+    return {
+      resume,
+      buffer: Buffer.from('Local resume preview is only available with Supabase storage.'),
+    };
+  }
+
+  const { data, error } = await supabase.storage
+    .from(resume.bucket)
+    .download(resume.storagePath);
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    resume,
+    buffer: Buffer.from(await data.arrayBuffer()),
+  };
 };
 
 const updateResume = async (userId, id, payload) => {
@@ -109,6 +115,7 @@ module.exports = {
   allowedMimeTypes,
   uploadResume,
   getActiveResume,
+  getResumeFile,
   updateResume,
   deleteResume,
 };

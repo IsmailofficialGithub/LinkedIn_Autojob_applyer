@@ -66,6 +66,8 @@ export function SetupPage() {
   const [searchParams] = useSearchParams()
   const [resumeFile, setResumeFile] = useState(null)
   const [activeResume, setActiveResume] = useState(null)
+  const [resumePreviewUrl, setResumePreviewUrl] = useState('')
+  const [resumePreviewError, setResumePreviewError] = useState('')
   const [linkedinStatus, setLinkedinStatus] = useState(null)
   const [keywordSets, setKeywordSets] = useState([])
   const [editingKeywordId, setEditingKeywordId] = useState('')
@@ -120,6 +122,44 @@ export function SetupPage() {
 
     return () => window.clearTimeout(timer)
   }, [loadSetupDetails])
+
+  useEffect(() => {
+    if (!activeResume?.id || !activeResume.mimeType?.includes('pdf')) {
+      setResumePreviewUrl('')
+      setResumePreviewError('')
+      return undefined
+    }
+
+    let objectUrl = ''
+    let active = true
+
+    const loadPreview = async () => {
+      setResumePreviewError('')
+      try {
+        const response = await apiClient.get(`/resumes/${activeResume.id}/file`, {
+          responseType: 'blob',
+        })
+        objectUrl = window.URL.createObjectURL(response.data)
+        if (active) {
+          setResumePreviewUrl(objectUrl)
+        }
+      } catch (err) {
+        if (active) {
+          setResumePreviewUrl('')
+          setResumePreviewError(getErrorMessage(err))
+        }
+      }
+    }
+
+    loadPreview()
+
+    return () => {
+      active = false
+      if (objectUrl) {
+        window.URL.revokeObjectURL(objectUrl)
+      }
+    }
+  }, [activeResume])
 
   const refreshSetup = async () => {
     await Promise.all([refreshOnboarding(), loadSetupDetails()])
@@ -448,11 +488,11 @@ export function SetupPage() {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {activeResume.previewUrl ? (
+                      {resumePreviewUrl ? (
                         <Button
                           variant="outlined"
                           startIcon={<ExternalLink size={16} />}
-                          href={activeResume.previewUrl}
+                          href={resumePreviewUrl}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -470,18 +510,25 @@ export function SetupPage() {
                       </Button>
                     </div>
                   </div>
-                  {activeResume.previewUrl ? (
+                  {resumePreviewUrl ? (
                     <div className="mt-4 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-white">
                       <iframe
                         title="Resume preview"
-                        src={activeResume.previewUrl}
+                        src={resumePreviewUrl}
                         className="h-96 w-full"
                       />
+                    </div>
+                  ) : resumePreviewError ? (
+                    <div className="mt-4 flex items-center gap-2 rounded-md border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-3 text-sm text-[var(--text-secondary)]">
+                      <Eye size={16} />
+                      Preview could not be loaded right now. The resume is still saved.
                     </div>
                   ) : (
                     <div className="mt-4 flex items-center gap-2 rounded-md border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-3 text-sm text-[var(--text-secondary)]">
                       <Eye size={16} />
-                      Preview is available for PDF resumes. DOCX files can still be used for email attachments.
+                      {activeResume.mimeType?.includes('pdf')
+                        ? 'Loading PDF preview...'
+                        : 'Preview is available for PDF resumes. DOCX files can still be used for email attachments.'}
                     </div>
                   )}
                 </div>
