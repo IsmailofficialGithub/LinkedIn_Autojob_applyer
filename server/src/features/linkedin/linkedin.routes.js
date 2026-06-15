@@ -5,7 +5,6 @@ const linkedinController = require('./linkedin.controller');
 const router = express.Router();
 
 router.get('/linkedin/connect', asyncHandler(linkedinController.getConnectUrl));
-router.get('/linkedin/callback', asyncHandler(linkedinController.handleCallback));
 router.get('/linkedin/status', asyncHandler(linkedinController.getStatus));
 router.delete('/linkedin/disconnect', asyncHandler(linkedinController.disconnect));
 

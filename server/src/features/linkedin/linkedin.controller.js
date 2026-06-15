@@ -1,14 +1,20 @@
+const { env } = require('../../config/env');
 const { sendSuccess } = require('../../helpers/response');
 const linkedinService = require('./linkedin.service');
 
 const getConnectUrl = (req, res) =>
-  sendSuccess(res, { data: { url: linkedinService.getConnectUrl() } });
+  sendSuccess(res, { data: { url: linkedinService.getConnectUrl(req.user.id) } });
 
 const handleCallback = async (req, res) =>
   sendSuccess(res, {
     message: 'LinkedIn connected',
     data: await linkedinService.connectLinkedin(req.user.id, req.query),
   });
+
+const handlePublicCallback = async (req, res) => {
+  await linkedinService.connectLinkedinFromCallback(req.query);
+  return res.redirect(`${env.FRONTEND_URL}/setup?linkedin=connected`);
+};
 
 const getStatus = async (req, res) =>
   sendSuccess(res, { data: await linkedinService.getLinkedinStatus(req.user.id) });
@@ -19,4 +25,4 @@ const disconnect = async (req, res) =>
     data: await linkedinService.disconnectLinkedin(req.user.id),
   });
 
-module.exports = { getConnectUrl, handleCallback, getStatus, disconnect };
+module.exports = { getConnectUrl, handleCallback, handlePublicCallback, getStatus, disconnect };

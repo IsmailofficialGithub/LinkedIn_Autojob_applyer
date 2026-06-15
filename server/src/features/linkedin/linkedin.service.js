@@ -2,16 +2,42 @@ const axios = require('axios');
 const { env } = require('../../config/env');
 const { createId, now } = require('../../database/store');
 const repository = require('../../database/repository');
+const { ApiError } = require('../../utils/ApiError');
+
+const oauthStates = new Map();
+const stateTtlMs = 10 * 60 * 1000;
 
 const getLinkedinAccount = (userId) =>
   repository.findFirstByUser('linkedinAccounts', userId);
 
-const getConnectUrl = () => {
+const createOauthState = (userId) => {
+  const state = createId();
+  oauthStates.set(state, {
+    userId,
+    expiresAt: Date.now() + stateTtlMs,
+  });
+  return state;
+};
+
+const consumeOauthState = (state) => {
+  const stored = oauthStates.get(state);
+  oauthStates.delete(state);
+
+  if (!stored || stored.expiresAt < Date.now()) {
+    throw new ApiError(400, 'LinkedIn connection expired. Please try again.');
+  }
+
+  return stored.userId;
+};
+
+const getConnectUrl = (userId) => {
+  const state = createOauthState(userId);
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: env.LINKEDIN_CLIENT_ID,
     redirect_uri: env.LINKEDIN_REDIRECT_URI,
     scope: env.LINKEDIN_SCOPES,
+    state,
   });
 
   return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
@@ -37,20 +63,10 @@ const fetchLinkedinIdentity = async (code) => {
   return userResponse.data;
 };
 
-const connectLinkedin = async (userId, query) => {
-  const identity =
-    query.mock === '1' || process.env.NODE_ENV === 'test'
-      ? {
-          sub: query.sub || 'linkedin_test_sub',
-          name: query.name || 'LinkedIn Test User',
-          email: query.email || 'linkedin@example.com',
-          picture: query.picture || '',
-        }
-      : await fetchLinkedinIdentity(query.code);
-
+const saveLinkedinIdentity = async (userId, identity) => {
   const existing = await getLinkedinAccount(userId);
   const account = {
-    id: existing?.id || createId('linkedin'),
+    id: existing?.id || createId(),
     userId,
     linkedinSub: identity.sub,
     name: identity.name || '',
@@ -65,6 +81,30 @@ const connectLinkedin = async (userId, query) => {
   return existing
     ? repository.update('linkedinAccounts', account)
     : repository.insert('linkedinAccounts', account);
+};
+
+const connectLinkedin = async (userId, query) => {
+  const identity =
+    query.mock === '1' || process.env.NODE_ENV === 'test'
+      ? {
+          sub: query.sub || 'linkedin_test_sub',
+          name: query.name || 'LinkedIn Test User',
+          email: query.email || 'linkedin@example.com',
+          picture: query.picture || '',
+        }
+      : await fetchLinkedinIdentity(query.code);
+
+  return saveLinkedinIdentity(userId, identity);
+};
+
+const connectLinkedinFromCallback = async (query) => {
+  if (query.error) {
+    throw new ApiError(400, 'LinkedIn connection was cancelled.');
+  }
+
+  const userId = consumeOauthState(query.state);
+  const identity = await fetchLinkedinIdentity(query.code);
+  return saveLinkedinIdentity(userId, identity);
 };
 
 const disconnectLinkedin = async (userId) => {
@@ -92,6 +132,7 @@ const getLinkedinStatus = async (userId) => {
 module.exports = {
   getConnectUrl,
   connectLinkedin,
+  connectLinkedinFromCallback,
   disconnectLinkedin,
   getLinkedinStatus,
 };

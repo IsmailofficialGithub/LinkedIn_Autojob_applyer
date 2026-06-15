@@ -8,6 +8,7 @@ const emailQueueRoutes = require('./emailQueue/emailQueue.routes');
 const emailTemplatesRoutes = require('./emailTemplates/emailTemplates.routes');
 const jobSubmissionsRoutes = require('./jobSubmissions/jobSubmissions.routes');
 const keywordsRoutes = require('./keywords/keywords.routes');
+const linkedinPublicRoutes = require('./linkedin/linkedinPublic.routes');
 const linkedinRoutes = require('./linkedin/linkedin.routes');
 const recruiterEmailsRoutes = require('./recruiterEmails/recruiterEmails.routes');
 const resumesRoutes = require('./resumes/resumes.routes');
@@ -17,6 +18,7 @@ const router = express.Router();
 
 router.use('/health', healthRoutes);
 router.use(authRoutes);
+router.use(linkedinPublicRoutes);
 router.use(authenticate);
 router.use(usersRoutes);
 router.use(linkedinRoutes);
