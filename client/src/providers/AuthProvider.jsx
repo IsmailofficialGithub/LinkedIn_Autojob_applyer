@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { setAuthToken } from '../lib/apiClient'
-import { supabase } from '../lib/supabaseClient'
+import { apiClient, setAuthToken } from '../lib/apiClient'
 import { AuthContext } from './authContext'
+
+const TOKEN_KEY = 'autolinkedapply-access-token'
+const USER_KEY = 'autolinkedapply-user'
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
@@ -11,45 +13,72 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return
+    const restoreSession = async () => {
+      const token = window.localStorage.getItem(TOKEN_KEY)
+      const storedUser = window.localStorage.getItem(USER_KEY)
 
-      setSession(data.session)
-      setUser(data.session?.user || null)
-      setAuthToken(data.session?.access_token)
-      setLoading(false)
-    })
+      if (!token) {
+        setLoading(false)
+        return
+      }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession)
-      setUser(nextSession?.user || null)
-      setAuthToken(nextSession?.access_token)
-      setLoading(false)
-    })
+      setAuthToken(token)
+
+      try {
+        const { data } = await apiClient.get('/auth/session')
+        if (!mounted) return
+
+        const nextUser = data.data.user
+        setSession({ accessToken: token })
+        setUser(nextUser)
+        window.localStorage.setItem(USER_KEY, JSON.stringify(nextUser))
+      } catch {
+        setAuthToken(null)
+        window.localStorage.removeItem(TOKEN_KEY)
+        window.localStorage.removeItem(USER_KEY)
+        if (mounted && storedUser) setUser(null)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    restoreSession()
 
     return () => {
       mounted = false
-      subscription.unsubscribe()
     }
   }, [])
 
-  const signIn = useCallback(async ({ email, password }) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-    return data
+  const applyAuthData = useCallback((authData) => {
+    const token = authData.session?.accessToken
+
+    if (token) {
+      window.localStorage.setItem(TOKEN_KEY, token)
+      window.localStorage.setItem(USER_KEY, JSON.stringify(authData.user))
+      setAuthToken(token)
+    }
+
+    setSession(authData.session)
+    setUser(authData.user)
+    return authData
   }, [])
+
+  const signIn = useCallback(async ({ email, password }) => {
+    const { data } = await apiClient.post('/auth/signin', { email, password })
+    return applyAuthData(data.data)
+  }, [applyAuthData])
 
   const signUp = useCallback(async ({ email, password }) => {
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) throw error
-    return data
-  }, [])
+    const { data } = await apiClient.post('/auth/signup', { email, password })
+    return applyAuthData(data.data)
+  }, [applyAuthData])
 
   const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    window.localStorage.removeItem(TOKEN_KEY)
+    window.localStorage.removeItem(USER_KEY)
+    setAuthToken(null)
+    setSession(null)
+    setUser(null)
   }, [])
 
   const value = useMemo(

@@ -15,6 +15,26 @@ test('protected routes reject missing and invalid tokens', async () => {
   await request(app).get('/api/me').set('Authorization', 'Bearer invalid').expect(401);
 });
 
+test('backend auth routes return normalized session data', async () => {
+  resetStore();
+
+  const signup = await request(app)
+    .post('/api/auth/signup')
+    .send({ email: 'new@example.com', password: 'Password1!' })
+    .expect(201);
+
+  assert.equal(signup.body.data.user.email, 'new@example.com');
+  assert.equal(signup.body.data.session.accessToken, 'test-token');
+
+  const signin = await request(app)
+    .post('/api/auth/signin')
+    .send({ email: 'new@example.com', password: 'Password1!' })
+    .expect(200);
+
+  assert.equal(signin.body.data.user.email, 'new@example.com');
+  assert.equal(signin.body.data.session.accessToken, 'test-token');
+});
+
 test('all planned backend phases expose working route flows', async () => {
   resetStore();
 

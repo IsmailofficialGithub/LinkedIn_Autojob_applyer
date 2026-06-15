@@ -1,4 +1,5 @@
 const express = require('express');
+const authRoutes = require('./auth/auth.routes');
 const healthRoutes = require('./health/health.routes');
 const { authenticate } = require('../middlewares/authenticate');
 const automationRoutes = require('./automation/automation.routes');
@@ -15,6 +16,7 @@ const usersRoutes = require('./users/users.routes');
 const router = express.Router();
 
 router.use('/health', healthRoutes);
+router.use(authRoutes);
 router.use(authenticate);
 router.use(usersRoutes);
 router.use(linkedinRoutes);
