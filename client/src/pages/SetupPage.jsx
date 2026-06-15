@@ -88,9 +88,10 @@ export function SetupPage() {
     runAction(
       'linkedin',
       async () => {
-        await apiClient.get('/linkedin/callback?mock=1')
+        const { data } = await apiClient.get('/linkedin/connect')
+        window.location.href = data.data.url
       },
-      'Demo LinkedIn connection saved. Use Next step to continue.',
+      'Opening LinkedIn connection.',
       { advance: false },
     )
 
@@ -236,20 +237,17 @@ export function SetupPage() {
                 {loadingAction === 'linkedin'
                   ? 'Connecting...'
                   : steps.linkedinConnected
-                    ? 'Demo LinkedIn connected'
+                    ? 'LinkedIn connected'
                     : 'Connect LinkedIn'}
               </Button>
               {steps.linkedinConnected ? (
                 <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-200">
-                  <p className="font-semibold">Demo LinkedIn connected</p>
-                  <p className="mt-1">
-                    This confirms the setup step for now. Real LinkedIn OAuth can be wired when
-                    you are ready to use the live LinkedIn app callback.
-                  </p>
+                  <p className="font-semibold">LinkedIn connected</p>
+                  <p className="mt-1">Your LinkedIn identity is verified. Continue to the next step.</p>
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-[var(--text-secondary)]">
-                  For now this uses a demo connection so you can continue testing the setup flow.
+                  You will be redirected to LinkedIn, then brought back here after approval.
                 </p>
               )}
             </StepPanel>
