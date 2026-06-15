@@ -5,8 +5,16 @@ import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { PasswordStrength } from '../components/auth/PasswordStrength'
 import { useAuth } from '../hooks/useAuth'
+import { useTimedStatus } from '../hooks/useTimedStatus'
 import { getErrorMessage } from '../lib/errorHandler'
 import { getPasswordStrength } from '../lib/passwordStrength'
+
+const signUpMessages = [
+  { after: 0, text: 'Creating your account...' },
+  { after: 3000, text: 'Still setting things up. This can take a few seconds.' },
+  { after: 5000, text: 'Almost there. Waiting for the server response.' },
+  { after: 9000, text: 'This is taking longer than usual. Please keep this page open.' },
+]
 
 export function SignUpPage() {
   const { signUp } = useAuth()
@@ -19,6 +27,7 @@ export function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const passwordStrength = getPasswordStrength(form.password)
   const passwordsMatch = Boolean(form.confirmPassword) && form.confirmPassword === form.password
+  const loadingMessage = useTimedStatus(loading, signUpMessages)
 
   const handleChange = (event) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
@@ -67,10 +76,15 @@ export function SignUpPage() {
       <form onSubmit={handleSubmit}>
         {error ? <Alert severity="error">{error}</Alert> : null}
         {notice ? <Alert severity="success">{notice}</Alert> : null}
+        {loading ? (
+          <Alert severity="info" sx={{ mt: error || notice ? 2 : 0, mb: 2 }}>
+            {loadingMessage}
+          </Alert>
+        ) : null}
         <TextField
           fullWidth
           required
-          sx={{ mb: 2.25, mt: error || notice ? 2 : 0 }}
+          sx={{ mb: 2.25, mt: error || notice || loading ? 2 : 0 }}
           label="Email address"
           name="email"
           type="email"
@@ -144,7 +158,7 @@ export function SignUpPage() {
           variant="contained"
           disabled={loading || !passwordStrength.isValid || !passwordsMatch}
         >
-          {loading ? 'Creating account...' : 'Create account'}
+          {loading ? loadingMessage : 'Create account'}
         </Button>
       </form>
     </AuthLayout>

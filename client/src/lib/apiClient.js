@@ -4,6 +4,7 @@ import { handleError } from './errorHandler'
 
 export const apiClient = axios.create({
   baseURL: env.apiUrl,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },

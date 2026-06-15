@@ -4,7 +4,15 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/auth/AuthLayout'
 import { useAuth } from '../hooks/useAuth'
+import { useTimedStatus } from '../hooks/useTimedStatus'
 import { getErrorMessage } from '../lib/errorHandler'
+
+const signInMessages = [
+  { after: 0, text: 'Connecting securely...' },
+  { after: 3000, text: 'Still checking your account. This can take a few seconds.' },
+  { after: 5000, text: 'Almost there. Waiting for the server response.' },
+  { after: 9000, text: 'This is taking longer than usual. The backend may be waking up.' },
+]
 
 export function SignInPage() {
   const { signIn } = useAuth()
@@ -14,6 +22,7 @@ export function SignInPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const loadingMessage = useTimedStatus(loading, signInMessages)
 
   const redirectTo = location.state?.from?.pathname || '/'
 
@@ -46,10 +55,15 @@ export function SignInPage() {
     >
       <form onSubmit={handleSubmit}>
         {error ? <Alert severity="error">{error}</Alert> : null}
+        {loading ? (
+          <Alert severity="info" sx={{ mt: error ? 2 : 0, mb: 2 }}>
+            {loadingMessage}
+          </Alert>
+        ) : null}
         <TextField
           fullWidth
           required
-          sx={{ mb: 2.25, mt: error ? 2 : 0 }}
+          sx={{ mb: 2.25, mt: error || loading ? 2 : 0 }}
           label="Email address"
           name="email"
           type="email"
@@ -82,7 +96,7 @@ export function SignInPage() {
           }}
         />
         <Button fullWidth size="large" type="submit" variant="contained" disabled={loading}>
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? loadingMessage : 'Sign in'}
         </Button>
       </form>
     </AuthLayout>
