@@ -12,8 +12,12 @@ const handleCallback = async (req, res) =>
   });
 
 const handlePublicCallback = async (req, res) => {
-  await linkedinService.connectLinkedinFromCallback(req.query);
-  return res.redirect(`${env.FRONTEND_URL}/setup?linkedin=connected`);
+  try {
+    await linkedinService.connectLinkedinFromCallback(req.query);
+    return res.redirect(`${env.FRONTEND_URL}/setup?linkedin=connected`);
+  } catch {
+    return res.redirect(`${env.FRONTEND_URL}/setup?linkedin=failed`);
+  }
 };
 
 const getStatus = async (req, res) =>

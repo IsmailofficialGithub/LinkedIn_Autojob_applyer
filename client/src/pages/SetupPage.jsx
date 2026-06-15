@@ -1,6 +1,7 @@
 import { Alert, Button, MenuItem, TextField } from '@mui/material'
 import { ArrowLeft, ArrowRight, Check, FileText, KeyRound, Link } from 'lucide-react'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { apiClient } from '../lib/apiClient'
 import { getErrorMessage } from '../lib/errorHandler'
 import { useOnboarding } from '../hooks/useOnboarding'
@@ -50,13 +51,20 @@ const setupSteps = [
 
 export function SetupPage() {
   const { onboarding, refreshOnboarding } = useOnboarding()
+  const [searchParams] = useSearchParams()
   const [resumeFile, setResumeFile] = useState(null)
   const [resumeText, setResumeText] = useState('')
   const [keywords, setKeywords] = useState('')
   const [location, setLocation] = useState('')
   const [workMode, setWorkMode] = useState('remote')
-  const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [error, setError] = useState(
+    searchParams.get('linkedin') === 'failed'
+      ? 'LinkedIn connection could not be completed. Please try again from this page.'
+      : '',
+  )
+  const [notice, setNotice] = useState(
+    searchParams.get('linkedin') === 'connected' ? 'LinkedIn connected successfully.' : '',
+  )
   const [loadingAction, setLoadingAction] = useState('')
   const [activeStep, setActiveStep] = useState(0)
 
