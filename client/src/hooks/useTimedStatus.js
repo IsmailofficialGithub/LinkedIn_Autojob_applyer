@@ -12,7 +12,6 @@ export const useTimedStatus = (active, messages = defaultMessages) => {
 
   useEffect(() => {
     if (!active) {
-      setMessage(messages[0]?.text || '')
       return undefined
     }
 
