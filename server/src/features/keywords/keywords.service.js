@@ -1,9 +1,17 @@
 const { createId, now } = require('../../database/store');
 const repository = require('../../database/repository');
+const { ApiError } = require('../../utils/ApiError');
 
 const listKeywordSets = (userId) => repository.listByUser('keywordSets', userId);
+const maxKeywordSets = 5;
 
 const createKeywordSet = async (userId, payload) => {
+  const existingSets = await repository.listByUser('keywordSets', userId);
+  const activeSets = existingSets.filter((set) => set.enabled && !set.deletedAt);
+  if (activeSets.length >= maxKeywordSets) {
+    throw new ApiError(400, `You can save up to ${maxKeywordSets} keyword sets.`);
+  }
+
   const keywordSet = {
     id: createId('keyword_set'),
     userId,
@@ -47,4 +55,10 @@ const deleteKeywordSet = async (userId, id) => {
   });
 };
 
-module.exports = { listKeywordSets, createKeywordSet, updateKeywordSet, deleteKeywordSet };
+module.exports = {
+  listKeywordSets,
+  createKeywordSet,
+  updateKeywordSet,
+  deleteKeywordSet,
+  maxKeywordSets,
+};

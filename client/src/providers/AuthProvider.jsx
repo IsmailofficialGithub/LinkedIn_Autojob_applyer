@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiClient, setAuthToken } from '../lib/apiClient'
+import { apiClient, onUnauthorized, setAuthToken } from '../lib/apiClient'
 import { AuthContext } from './authContext'
 
 const TOKEN_KEY = 'autolinkedapply-access-token'
@@ -9,6 +9,14 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const clearAuth = useCallback(() => {
+    window.localStorage.removeItem(TOKEN_KEY)
+    window.localStorage.removeItem(USER_KEY)
+    setAuthToken(null)
+    setSession(null)
+    setUser(null)
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -33,9 +41,7 @@ export function AuthProvider({ children }) {
         setUser(nextUser)
         window.localStorage.setItem(USER_KEY, JSON.stringify(nextUser))
       } catch {
-        setAuthToken(null)
-        window.localStorage.removeItem(TOKEN_KEY)
-        window.localStorage.removeItem(USER_KEY)
+        clearAuth()
         if (mounted && storedUser) setUser(null)
       } finally {
         if (mounted) setLoading(false)
@@ -47,7 +53,9 @@ export function AuthProvider({ children }) {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [clearAuth])
+
+  useEffect(() => onUnauthorized(clearAuth), [clearAuth])
 
   const applyAuthData = useCallback((authData) => {
     const token = authData.session?.accessToken
@@ -74,12 +82,8 @@ export function AuthProvider({ children }) {
   }, [applyAuthData])
 
   const signOut = useCallback(async () => {
-    window.localStorage.removeItem(TOKEN_KEY)
-    window.localStorage.removeItem(USER_KEY)
-    setAuthToken(null)
-    setSession(null)
-    setUser(null)
-  }, [])
+    clearAuth()
+  }, [clearAuth])
 
   const value = useMemo(
     () => ({

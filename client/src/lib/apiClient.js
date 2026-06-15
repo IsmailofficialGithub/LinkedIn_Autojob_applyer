@@ -10,6 +10,8 @@ export const apiClient = axios.create({
   },
 })
 
+const unauthorizedListeners = new Set()
+
 export const setAuthToken = (token) => {
   if (token) {
     apiClient.defaults.headers.common.Authorization = `Bearer ${token}`
@@ -19,7 +21,27 @@ export const setAuthToken = (token) => {
   delete apiClient.defaults.headers.common.Authorization
 }
 
+export const onUnauthorized = (listener) => {
+  unauthorizedListeners.add(listener)
+  return () => unauthorizedListeners.delete(listener)
+}
+
+const shouldHandleUnauthorized = (error) => {
+  const status = error.response?.status
+  const url = error.config?.url || ''
+  const hasAuthHeader = Boolean(error.config?.headers?.Authorization)
+  const isAuthRequest = url.includes('/auth/signin') || url.includes('/auth/signup')
+
+  return status === 401 && hasAuthHeader && !isAuthRequest
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(handleError(error)),
+  (error) => {
+    if (shouldHandleUnauthorized(error)) {
+      unauthorizedListeners.forEach((listener) => listener())
+    }
+
+    return Promise.reject(handleError(error))
+  },
 )
