@@ -10,6 +10,8 @@ import {
   KeyRound,
   Link,
   Trash2,
+  Mail,
+  BriefcaseBusiness,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -59,6 +61,20 @@ const setupSteps = [
     icon: KeyRound,
     completeKey: 'hasKeywords',
   },
+  {
+    id: 'email',
+    title: 'Gmail sender & App password',
+    description: 'Connect your Gmail account to send outreach emails.',
+    icon: Mail,
+    completeKey: 'hasEmailAccount',
+  },
+  {
+    id: 'jobs',
+    title: 'Job submissions',
+    description: 'Add initial job content to start the workflow.',
+    icon: BriefcaseBusiness,
+    completeKey: 'hasJobSubmissions',
+  },
 ]
 
 export function SetupPage() {
@@ -70,11 +86,15 @@ export function SetupPage() {
   const [resumePreviewError, setResumePreviewError] = useState('')
   const [linkedinStatus, setLinkedinStatus] = useState(null)
   const [keywordSets, setKeywordSets] = useState([])
+  const [emailAccounts, setEmailAccounts] = useState([])
+  const [jobSubmissions, setJobSubmissions] = useState([])
   const [editingKeywordId, setEditingKeywordId] = useState('')
   const [resumeText, setResumeText] = useState('')
   const [keywords, setKeywords] = useState('')
   const [location, setLocation] = useState('')
   const [workMode, setWorkMode] = useState('remote')
+  const [emailInput, setEmailInput] = useState('')
+  const [appPasswordInput, setAppPasswordInput] = useState('')
   const [error, setError] = useState(
     searchParams.get('linkedin') === 'failed'
       ? 'LinkedIn connection could not be completed. Please try again from this page.'
@@ -87,7 +107,11 @@ export function SetupPage() {
   const [loadingDetails, setLoadingDetails] = useState(true)
   const [activeStep, setActiveStep] = useState(0)
 
-  const steps = onboarding?.steps || {}
+  const steps = {
+    ...onboarding?.steps,
+    ...onboarding?.optionalSteps,
+    hasJobSubmissions: jobSubmissions.length > 0,
+  }
   const linkedinAccount = linkedinStatus?.connected ? linkedinStatus.account : null
   const activeKeywordSets = useMemo(
     () => keywordSets.filter((set) => set.enabled && !set.deletedAt),
@@ -100,14 +124,18 @@ export function SetupPage() {
   const loadSetupDetails = useCallback(async () => {
     setLoadingDetails(true)
     try {
-      const [linkedinResponse, resumeResponse, keywordResponse] = await Promise.all([
+      const [linkedinResponse, resumeResponse, keywordResponse, emailAccountsResponse, jobSubmissionsResponse] = await Promise.all([
         apiClient.get('/linkedin/status'),
         apiClient.get('/resumes/active'),
         apiClient.get('/keyword-sets'),
+        apiClient.get('/email-accounts'),
+        apiClient.get('/job-submissions'),
       ])
       setLinkedinStatus(linkedinResponse.data.data)
       setActiveResume(resumeResponse.data.data)
       setKeywordSets(keywordResponse.data.data || [])
+      setEmailAccounts(emailAccountsResponse.data.data || [])
+      setJobSubmissions(jobSubmissionsResponse.data.data || [])
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -305,6 +333,35 @@ export function SetupPage() {
       'Keyword set deleted.',
       { advance: false },
     )
+
+  const saveEmailAccount = () =>
+    runAction(
+      'email',
+      async () => {
+        if (!emailInput.trim() || !appPasswordInput.trim()) {
+          throw new Error('Email and App Password are required.')
+        }
+        await apiClient.post('/email-accounts', {
+          email: emailInput.trim(),
+          appPassword: appPasswordInput.trim(),
+        })
+        setEmailInput('')
+        setAppPasswordInput('')
+      },
+      'Email account saved.',
+    )
+
+  const deleteEmailAccount = (id) =>
+    runAction(
+      `email-delete-${id}`,
+      async () => {
+        await apiClient.delete(`/email-accounts/${id}`)
+      },
+      'Email account removed.',
+      { advance: false },
+    )
+
+  const activeEmailAccount = emailAccounts.find((acc) => acc.enabled && !acc.deletedAt)
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -700,6 +757,98 @@ export function SetupPage() {
                   set to continue.
                 </p>
               ) : null}
+            </StepPanel>
+          ) : null}
+
+          {currentStep.id === 'email' ? (
+            <StepPanel
+              icon={Mail}
+              title={currentStep.title}
+              description={currentStep.description}
+            >
+              {loadingDetails ? (
+                <p className="mb-4 text-sm text-[var(--text-secondary)]">Loading email account...</p>
+              ) : activeEmailAccount ? (
+                <div className="mb-5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">
+                        Connected Gmail Sender
+                      </p>
+                      <p className="mt-1 truncate text-sm text-[var(--text-secondary)]">
+                        {activeEmailAccount.email}
+                      </p>
+                    </div>
+                    <Button
+                      color="error"
+                      variant="outlined"
+                      startIcon={<Trash2 size={16} />}
+                      onClick={() => deleteEmailAccount(activeEmailAccount.id)}
+                      disabled={loadingAction === `email-delete-${activeEmailAccount.id}`}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    You can generate an App Password in your Google Account settings under Security.
+                  </p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <TextField
+                      fullWidth
+                      label="Gmail address"
+                      placeholder="sender@gmail.com"
+                      value={emailInput}
+                      onChange={(event) => setEmailInput(event.target.value)}
+                    />
+                    <TextField
+                      fullWidth
+                      type="password"
+                      label="App Password"
+                      placeholder="16-character password"
+                      value={appPasswordInput}
+                      onChange={(event) => setAppPasswordInput(event.target.value)}
+                    />
+                  </div>
+                  <Button
+                    variant="contained"
+                    onClick={saveEmailAccount}
+                    disabled={loadingAction === 'email' || !emailInput.trim() || !appPasswordInput.trim()}
+                  >
+                    Save email account
+                  </Button>
+                </div>
+              )}
+            </StepPanel>
+          ) : null}
+
+          {currentStep.id === 'jobs' ? (
+            <StepPanel
+              icon={BriefcaseBusiness}
+              title={currentStep.title}
+              description={currentStep.description}
+            >
+              {loadingDetails ? (
+                <p className="mb-4 text-sm text-[var(--text-secondary)]">Loading job submissions...</p>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-[var(--text-primary)] font-medium">
+                    {jobSubmissions.length} job submissions found.
+                  </p>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Head over to the Jobs section to add content from LinkedIn.
+                  </p>
+                  <Button
+                    variant="outlined"
+                    component="a"
+                    href="/jobs"
+                  >
+                    Go to Jobs
+                  </Button>
+                </div>
+              )}
             </StepPanel>
           ) : null}
 
