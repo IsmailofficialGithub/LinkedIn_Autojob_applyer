@@ -1,9 +1,20 @@
 require('dotenv').config();
 
+const parseList = (value, fallback = []) =>
+  (value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .concat(fallback)
+    .filter((item, index, list) => list.indexOf(item) === index);
+
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: Number(process.env.PORT || 5000),
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
+  FRONTEND_URLS: parseList(process.env.FRONTEND_URLS, [
+    process.env.FRONTEND_URL || 'http://localhost:5173',
+  ]),
   SUPABASE_URL: process.env.SUPABASE_URL || '',
   SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
