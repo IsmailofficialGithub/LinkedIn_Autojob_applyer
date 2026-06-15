@@ -21,7 +21,14 @@ function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<OnboardingGate />}>
-          <Route path="/setup" element={<SetupPage />} />
+          <Route
+            path="/setup"
+            element={
+              <AppLayout>
+                <SetupPage />
+              </AppLayout>
+            }
+          />
           <Route
             path="/"
             element={
