@@ -33,6 +33,7 @@ const getPage = async (liAtCookie) => {
   // Use the user's specific li_at cookie
   const cookieValue = liAtCookie || env.LINKEDIN_COOKIE_LI_AT;
   if (cookieValue) {
+    console.log(`[scraper] Using li_at cookie (length: ${cookieValue.length})`);
     await page.setCookie({
       name: 'li_at',
       value: cookieValue,
@@ -49,20 +50,23 @@ const getPage = async (liAtCookie) => {
 const searchPosts = async (keyword, pageNum = 1, liAtCookie = null) => {
   const page = await getPage(liAtCookie);
   const encodedKeyword = encodeURIComponent(keyword);
-  // Using the exact URL format provided by the user in the prompt, with skipRedirect=true
-  const searchUrl = `https://www.linkedin.com/search/results/content/?skipRedirect=true&keywords=${encodedKeyword}&origin=SWITCH_SEARCH_VERTICAL&page=${pageNum}`;
+  const searchUrl = `https://www.linkedin.com/search/results/content/?keywords=${encodedKeyword}&origin=SWITCH_SEARCH_VERTICAL`;
   
   try {
+    console.log(`[scraper] Navigating to ${searchUrl}`);
     await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
     
     // Check if we hit a login wall
     const url = page.url();
     if (url.includes('login') || url.includes('signup')) {
+      console.log(`[scraper] Forced login wall detected for url: ${url}`);
       throw new Error('LinkedIn forced login wall. A valid li_at cookie is required.');
     }
 
     // Wait for feed items to load
-    await page.waitForSelector('.feed-shared-update-v2', { timeout: 10000 }).catch(() => null);
+    await page.waitForSelector('.feed-shared-update-v2', { timeout: 10000 }).catch(() => {
+      console.log(`[scraper] Timeout waiting for .feed-shared-update-v2 on posts search`);
+    });
 
     // Extract posts
     const posts = await page.evaluate(() => {
@@ -95,24 +99,28 @@ const searchPosts = async (keyword, pageNum = 1, liAtCookie = null) => {
 const searchJobs = async (keyword, pageNum = 1, liAtCookie = null) => {
   const page = await getPage(liAtCookie);
   const encodedKeyword = encodeURIComponent(keyword);
-  // Job search URL
+  // Using the exact jobs search URL provided by user
   const searchUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodedKeyword}&origin=SWITCH_SEARCH_VERTICAL&start=${(pageNum - 1) * 25}`;
-
+  
   try {
+    console.log(`[scraper] Navigating to ${searchUrl}`);
     await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
     
     // Check if we hit a login wall
     const url = page.url();
     if (url.includes('login') || url.includes('signup')) {
+      console.log(`[scraper] Forced login wall detected for url: ${url}`);
       throw new Error('LinkedIn forced login wall. A valid li_at cookie is required.');
     }
 
-    // Wait for job cards
-    await page.waitForSelector('.job-card-container, .base-card', { timeout: 10000 }).catch(() => null);
+    // Wait for job cards to load
+    await page.waitForSelector('.job-card-container', { timeout: 10000 }).catch(() => {
+      console.log(`[scraper] Timeout waiting for .job-card-container on jobs search`);
+    });
 
-    // Extract job links
+    // Extract jobs
     const jobs = await page.evaluate(() => {
-      const jobElements = Array.from(document.querySelectorAll('.job-card-container, .base-card'));
+      const jobElements = Array.from(document.querySelectorAll('.job-card-container'));
       return jobElements.map(el => {
         const titleEl = el.querySelector('.job-card-list__title, .base-search-card__title');
         const title = titleEl ? titleEl.innerText.trim() : 'Unknown Title';

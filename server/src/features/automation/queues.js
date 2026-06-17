@@ -32,6 +32,14 @@ const initializeWorker = () => {
       { connection: { url: env.REDIS_URL } }
     );
 
+    automationWorker.on('active', (job) => {
+      console.log(`Automation job ${job.id} started: ${job.data.type} for keyword '${job.data.keyword}'`);
+    });
+
+    automationWorker.on('completed', (job) => {
+      console.log(`Automation job ${job.id} completed successfully`);
+    });
+
     automationWorker.on('failed', (job, err) => {
       console.error(`Automation job ${job.id} failed:`, err);
     });
@@ -43,13 +51,21 @@ const triggerScrapingForUser = async (userId) => {
   const keywordsSets = await repository.listByUser('keywordSets', userId);
   const enabledSets = keywordsSets.filter(k => k.enabled && !k.deletedAt);
   
+  if (enabledSets.length === 0) {
+    console.log(`No enabled keyword sets found for user ${userId}. Skipping automation.`);
+    return;
+  }
+
   const queue = getAutomationQueue();
+  let queuedCount = 0;
   for (const set of enabledSets) {
     for (const keyword of set.keywords || []) {
       await queue.add('scrape', { type: 'scrape_posts', userId, keyword });
       await queue.add('scrape', { type: 'scrape_jobs', userId, keyword });
+      queuedCount += 2;
     }
   }
+  console.log(`Successfully queued ${queuedCount} automation jobs for user ${userId}`);
 };
 
 module.exports = { getAutomationQueue, initializeWorker, triggerScrapingForUser };

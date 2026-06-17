@@ -16,7 +16,9 @@ const scanAndQueueEmails = async (userId, keyword, maxPages = 1) => {
     let newPostsFound = 0;
     
     for (let page = 1; page <= maxPages; page++) {
+      console.log(`[postScanner] Searching posts for keyword '${keyword}' page ${page}...`);
       const posts = await scraper.searchPosts(keyword, page, liAtCookie);
+      console.log(`[postScanner] Found ${posts.length} posts on page ${page}.`);
       
       for (const post of posts) {
         if (!post.text || !post.text.trim()) continue;
@@ -29,12 +31,11 @@ const scanAndQueueEmails = async (userId, keyword, maxPages = 1) => {
         });
 
         // The service returns the existing submission if it was a duplicate
-        // We can check if it was newly created by looking at createdAt vs updatedAt,
-        // but for simplicity we'll just track total found
         newPostsFound++;
       }
     }
 
+    console.log(`[postScanner] Finished. Processed ${newPostsFound} posts for '${keyword}'.`);
     run.status = 'completed';
     run.message = `Scanned posts and processed ${newPostsFound} entries. Emails found are in queue.`;
     await automationService.updateAutomationSettings(userId, {}); // dummy update to touch timestamp
@@ -48,10 +49,12 @@ const scanAndQueueEmails = async (userId, keyword, maxPages = 1) => {
     });
 
   } catch (error) {
+    console.error(`[postScanner] Error scanning posts for '${keyword}':`, error);
     await automationService.createAutomationRun(userId, {
       status: 'failed',
       message: `Failed scanning posts: ${error.message}`,
     });
+    throw error;
   }
 };
 

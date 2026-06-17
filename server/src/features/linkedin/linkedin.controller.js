@@ -34,9 +34,13 @@ const saveCookie = async (req, res) => {
   if (!cookie) {
     return res.status(400).json({ success: false, message: 'Cookie is required' });
   }
+  
+  // Clean up any newlines or spaces that might have been copied by mistake
+  const cleanCookie = cookie.replace(/\s+/g, '');
+
   return sendSuccess(res, {
     message: 'LinkedIn cookie saved',
-    data: await linkedinService.saveLinkedinCookie(req.user.id, cookie),
+    data: await linkedinService.saveLinkedinCookie(req.user.id, cleanCookie),
   });
 };
 

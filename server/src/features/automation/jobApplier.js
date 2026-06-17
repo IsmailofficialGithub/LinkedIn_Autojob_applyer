@@ -17,7 +17,9 @@ const scanAndApplyJobs = async (userId, keyword, maxPages = 1) => {
     let appliedCount = 0;
 
     for (let page = 1; page <= maxPages; page++) {
+      console.log(`[jobApplier] Searching jobs for keyword '${keyword}' page ${page}...`);
       const jobs = await scraper.searchJobs(keyword, page, liAtCookie);
+      console.log(`[jobApplier] Found ${jobs.length} jobs on page ${page}.`);
       
       for (const job of jobs) {
         if (!job.url) continue;
@@ -30,7 +32,9 @@ const scanAndApplyJobs = async (userId, keyword, maxPages = 1) => {
         });
 
         // Attempt to apply
+        console.log(`[jobApplier] Attempting to apply for job: ${job.title} at ${job.company} (${job.url})`);
         const result = await scraper.clickApplyOnJob(job.url, liAtCookie);
+        console.log(`[jobApplier] Apply result for ${job.title}: ${result.success ? 'SUCCESS' : 'FAILED'} - ${result.message}`);
         jobsProcessed++;
         
         if (result.success) {
@@ -39,16 +43,19 @@ const scanAndApplyJobs = async (userId, keyword, maxPages = 1) => {
       }
     }
 
+    console.log(`[jobApplier] Finished. Processed ${jobsProcessed} jobs, attempted apply on ${appliedCount}.`);
     await automationService.createAutomationRun(userId, {
       status: 'completed',
       message: `Job scanning finished. Processed ${jobsProcessed} jobs and attempted Easy Apply on ${appliedCount} for '${keyword}'.`,
     });
 
   } catch (error) {
+    console.error(`[jobApplier] Error scanning jobs for '${keyword}':`, error);
     await automationService.createAutomationRun(userId, {
       status: 'failed',
       message: `Failed scanning jobs: ${error.message}`,
     });
+    throw error; // Rethrow so BullMQ knows it failed
   }
 };
 
